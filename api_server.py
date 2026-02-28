@@ -11,8 +11,8 @@ URL:  http://localhost:5000
 
 import os
 import json
-import pickle
 import numpy as np
+import xgboost as xgb
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -21,23 +21,36 @@ BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, 'outputs')
 FRONTEND   = os.path.join(BASE_DIR, 'frontend')
 
+
+# ── Portable Scaler (no pickle needed) ───────────────────────────────────
+class PortableScaler:
+    """StandardScaler loaded from JSON — version independent."""
+    def __init__(self, json_path):
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+        self.mean_ = np.array(data['mean'])
+        self.scale_ = np.array(data['scale'])
+
+    def transform(self, X):
+        return (np.array(X) - self.mean_) / self.scale_
+
+
 # ── Load Models & Artifacts ──────────────────────────────────────────────
 def load_artifacts():
-    """Load all trained models, scaler, and metadata."""
+    """Load all trained models, scaler, and metadata (portable format)."""
     # Metadata
     with open(os.path.join(OUTPUT_DIR, 'model_metadata.json'), 'r') as f:
         metadata = json.load(f)
 
-    # Scaler
-    with open(os.path.join(OUTPUT_DIR, 'scaler.pkl'), 'rb') as f:
-        scaler = pickle.load(f)
+    # Scaler (from JSON)
+    scaler = PortableScaler(os.path.join(OUTPUT_DIR, 'scaler.json'))
 
-    # Models
+    # Models (from native XGBoost format — version independent)
     models = {}
     for target in metadata['target_columns']:
-        path = os.path.join(OUTPUT_DIR, f'model_{target}.pkl')
-        with open(path, 'rb') as f:
-            models[target] = pickle.load(f)
+        booster = xgb.Booster()
+        booster.load_model(os.path.join(OUTPUT_DIR, f'model_{target}.xgb'))
+        models[target] = booster
 
     # Feature importance
     importance = {}
@@ -131,9 +144,10 @@ def predict():
         X_scaled = scaler.transform(X_input)
 
         # Predict each target
+        dmat = xgb.DMatrix(X_scaled)
         predictions = {}
         for target, model in models.items():
-            pred = model.predict(X_scaled)[0]
+            pred = model.predict(dmat)[0]
             predictions[target] = round(float(pred), 4)
 
         return jsonify({
@@ -179,9 +193,10 @@ def stress_test():
             X_input = np.array([[full_input[f] for f in feature_cols]])
             X_scaled = scaler.transform(X_input)
 
+            dmat = xgb.DMatrix(X_scaled)
             preds = {}
             for target, model in models.items():
-                preds[target] = round(float(model.predict(X_scaled)[0]), 4)
+                preds[target] = round(float(model.predict(dmat)[0]), 4)
 
             results.append({
                 'sweep_value': round(val, 2),
@@ -219,10 +234,11 @@ def compare_scenarios():
             full_input = compute_interaction_features(scenario)
             X_input = np.array([[full_input[f] for f in feature_cols]])
             X_scaled = scaler.transform(X_input)
+            dmat = xgb.DMatrix(X_scaled)
             
             preds = {}
             for target, model in models.items():
-                preds[target] = round(float(model.predict(X_scaled)[0]), 4)
+                preds[target] = round(float(model.predict(dmat)[0]), 4)
             results[label] = preds
         
         # Compute deltas
@@ -244,6 +260,11 @@ def compare_scenarios():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok', 'models': len(models), 'version': metadata.get('version', 'unknown')})
 
 
 # ── Run ──────────────────────────────────────────────────────────────────
