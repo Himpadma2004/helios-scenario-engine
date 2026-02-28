@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIOS — Scenario Sensitivity Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f1923;
+            --surface: #1a2633;
+            --surface2: #233040;
+            --border: #2d3f52;
+            --accent: #00d4ff;
+            --accent2: #ff6b6b;
+            --accent3: #4ecdc4;
+            --accent4: #ffd93d;
+            --text: #e8edf2;
+            --text2: #8ba3bc;
+            --positive: #4ecdc4;
+            --negative: #ff6b6b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a2633 0%, #0f1923 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--accent3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
+        .header .badge {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+        }
+        .tab {
+            padding: 14px 24px;
+            cursor: pointer;
+            color: var(--text2);
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* Layout */
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h3 .icon { font-size: 18px; }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+        /* Sliders */
+        .slider-group { margin-bottom: 18px; }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .slider-label span:first-child {
+            font-size: 13px;
+            color: var(--text2);
+            font-weight: 500;
+        }
+        .slider-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 80px;
+            text-align: right;
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--bg);
+            box-shadow: 0 0 8px rgba(0,212,255,0.3);
+        }
+        .slider-range {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 2px;
+            opacity: 0.6;
+        }
+
+        /* Result Cards */
+        .result-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .result-card:hover { border-color: var(--accent); }
+        .result-card .label {
+            font-size: 12px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .result-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .result-card .unit {
+            font-size: 12px;
+            color: var(--text2);
+            margin-top: 4px;
+        }
+
+        /* Delta badges */
+        .delta { font-size: 13px; margin-top: 6px; font-weight: 600; }
+        .delta.positive { color: var(--positive); }
+        .delta.negative { color: var(--negative); }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            color: #fff;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,212,255,0.3); }
+        .btn-secondary {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent); }
+        .btn-group { display: flex; gap: 12px; margin-top: 8px; }
+
+        /* Presets */
+        .preset-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover { border-color: var(--accent); color: var(--text); }
+        .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-top: 16px;
+        }
+
+        /* Sweep controls */
+        .sweep-controls {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .sweep-controls select, .sweep-controls input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .sweep-controls label {
+            font-size: 12px;
+            color: var(--text2);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Importance table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        th {
+            color: var(--text2);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .importance-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--accent);
+            transition: width 0.5s ease;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Compare columns */
+        .compare-grid { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 20px; }
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text2);
+        }
+
+        /* Status bar */
+        .status-bar {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 8px 32px;
+            font-size: 12px;
+            color: var(--text2);
+            display: flex;
+            justify-content: space-between;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--positive);
+            margin-right: 6px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-4, .compare-grid { grid-template-columns: 1fr; }
+            .container { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div>
+        <h1>⚡ HELIOS Scenario Sensitivity Engine</h1>
+        <div class="subtitle">Real-time what-if analysis • XGBoost-powered • Project HELIOS AI Model 1</div>
+    </div>
+    <div class="badge">🤖 ML Engine Active</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <div class="tab active" data-tab="predict" onclick="switchTab('predict')">🎯 Predict</div>
+    <div class="tab" data-tab="stress" onclick="switchTab('stress')">📈 Stress Test</div>
+    <div class="tab" data-tab="compare" onclick="switchTab('compare')">⚖️ Compare</div>
+    <div class="tab" data-tab="importance" onclick="switchTab('importance')">🔍 Feature Importance</div>
+</div>
+
+<div class="container">
+
+    <!-- ═══════════════ TAB 1: PREDICT ═══════════════ -->
+    <div class="tab-content active" id="tab-predict">
+        <div class="grid-2">
+            <!-- Left: Controls -->
+            <div class="card">
+                <h3><span class="icon">🎛️</span> Scenario Controls</h3>
+
+                <div class="preset-row">
+                    <button class="preset-btn" onclick="applyPreset('baseline')">🟢 Baseline</button>
+                    <button class="preset-btn" onclick="applyPreset('moderate')">🟡 Moderate Stress</button>
+                    <button class="preset-btn" onclick="applyPreset('severe')">🔴 Severe Stress</button>
+                    <button class="preset-btn" onclick="applyPreset('green')">🌿 Green Transition</button>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Avg Fuel Price Index</span>
+                        <span class="slider-value" id="val-fuel">100</span>
+                    </div>
+                    <input type="range" id="slider-fuel" min="60" max="250" step="1" value="100" oninput="updateSlider()">
+                    <div class="slider-range"><span>60</span><span>250</span></div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Carbon Tax per Ton (₹)</span>
+                        <span class="slider-value" id="val-carbon">50</span>
+                    </div>
+                    <input type="range" id="slider-carbon" min="0" max="3000" step="10" value="50" oninput="updateSlider()">
+                    <div class="slider-range"><span>0</span><span>3,000</span></div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Renewable Generation Factor</span>
+                        <span class="slider-value" id="val-renfactor">1.00</span>
+                    </div>
+                    <input type="range" id="slider-renfactor" min="0.3" max="1.5" step="0.01" value="1.0" oninput="updateSlider()">
+                    <div class="slider-range"><span>0.3</span><span>1.5</span></div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>RPO Target %</span>
+                        <span class="slider-value" id="val-rpo">30</span>
+                    </div>
+                    <input type="range" id="slider-rpo" min="10" max="70" step="1" value="30" oninput="updateSlider()">
+                    <div class="slider-range"><span>10%</span><span>70%</span></div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Avg Variable Cost / MWh (₹)</span>
+                        <span class="slider-value" id="val-varcost">80</span>
+                    </div>
+                    <input type="range" id="slider-varcost" min="20" max="350" step="1" value="80" oninput="updateSlider()">
+                    <div class="slider-range"><span>20</span><span>350</span></div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Merit Order Inversion Rate</span>
+                        <span class="slider-value" id="val-inversion">0.00</span>
+                    </div>
+                    <input type="range" id="slider-inversion" min="0" max="1" step="0.01" value="0" oninput="updateSlider()">
+                    <div class="slider-range"><span>0%</span><span>100%</span></div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="runPrediction()">⚡ Run Prediction</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('baseline')">↺ Reset</button>
+                </div>
+            </div>
+
+            <!-- Right: Results -->
+            <div>
+                <div class="card">
+                    <h3><span class="icon">📊</span> Predicted Outcomes</h3>
+                    <div id="predict-results">
+                        <div class="grid-2" style="gap: 14px;">
+                            <div class="result-card">
+                                <div class="label">Total EBITDA</div>
+                                <div class="value" id="res-ebitda">—</div>
+                                <div class="unit">₹ (monthly)</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="label">Average DSCR</div>
+                                <div class="value" id="res-dscr">—</div>
+                                <div class="unit">ratio</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="label">Emission Intensity</div>
+                                <div class="value" id="res-emission">—</div>
+                                <div class="unit">ton / MWh</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="label">Merchant Exposure</div>
+                                <div class="value" id="res-merchant">—</div>
+                                <div class="unit">rate (0–1)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">📉</span> Real-Time Radar</h3>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 2: STRESS TEST ═══════════════ -->
+    <div class="tab-content" id="tab-stress">
+        <div class="card">
+            <h3><span class="icon">📈</span> Stress Sweep — Sensitivity Curve</h3>
+            <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
+                Fix a base scenario, then sweep one feature across its range to see how outcomes shift.
+            </p>
+
+            <div class="sweep-controls">
+                <div>
+                    <label>Sweep Feature</label>
+                    <select id="sweep-feature">
+                        <option value="Avg_Fuel_Price_Index">Fuel Price Index</option>
+                        <option value="Carbon_Tax_per_Ton">Carbon Tax / Ton</option>
+                        <option value="Avg_Renewable_Generation_Factor">Renewable Gen Factor</option>
+                        <option value="RPO_Target_pct">RPO Target %</option>
+                        <option value="Avg_Variable_Cost_per_MWh">Variable Cost / MWh</option>
+                        <option value="Merit_Order_Inversion_Rate">Merit Inversion Rate</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Min</label>
+                    <input type="number" id="sweep-min" value="0" style="width: 100px;">
+                </div>
+                <div>
+                    <label>Max</label>
+                    <input type="number" id="sweep-max" value="2000" style="width: 100px;">
+                </div>
+                <div>
+                    <label>Steps</label>
+                    <input type="number" id="sweep-steps" value="25" style="width: 80px;">
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="runStressTest()">🔥 Run Sweep</button>
+                </div>
+            </div>
+
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="stressChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 3: COMPARE ═══════════════ -->
+    <div class="tab-content" id="tab-compare">
+        <div class="card">
+            <h3><span class="icon">⚖️</span> Scenario A vs B Comparison</h3>
+            <div class="preset-row">
+                <button class="preset-btn" onclick="applyComparePreset('baseline-vs-shock')">Baseline vs Shock</button>
+                <button class="preset-btn" onclick="applyComparePreset('low-vs-high-carbon')">Low vs High Carbon</button>
+                <button class="preset-btn" onclick="applyComparePreset('fossil-vs-green')">Fossil Heavy vs Green</button>
+            </div>
+        </div>
+
+        <div class="compare-grid">
+            <div class="card" id="compare-a-controls">
+                <h3 style="color: var(--accent);">Scenario A</h3>
+                <div id="compare-sliders-a"></div>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="card" id="compare-b-controls">
+                <h3 style="color: var(--accent2);">Scenario B</h3>
+                <div id="compare-sliders-b"></div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 16px 0;">
+            <button class="btn btn-primary" onclick="runCompare()">⚡ Compare Scenarios</button>
+        </div>
+
+        <div class="card" id="compare-results" style="display: none;">
+            <h3><span class="icon">📊</span> Comparison Results</h3>
+            <div class="grid-4" id="compare-cards"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 4: FEATURE IMPORTANCE ═══════════════ -->
+    <div class="tab-content" id="tab-importance">
+        <div class="card">
+            <h3><span class="icon">🔍</span> Feature Importance by Target</h3>
+            <div id="importance-tables"></div>
+        </div>
+        <div class="card">
+            <h3><span class="icon">📊</span> Importance Heatmap</h3>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="importanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+    <span><span class="status-dot"></span>Engine connected • XGBoost models loaded</span>
+    <span id="last-prediction">Ready for predictions</span>
+</div>
+
+<script>
+    // ── Config ──────────────────────────────────────────────────────────
+    const API_BASE = window.location.origin;
+
+    const FEATURES = [
+        { key: 'Avg_Fuel_Price_Index', label: 'Fuel Price Index', slider: 'fuel', min: 60, max: 250, step: 1, default: 100 },
+        { key: 'Carbon_Tax_per_Ton', label: 'Carbon Tax / Ton', slider: 'carbon', min: 0, max: 3000, step: 10, default: 50 },
+        { key: 'Avg_Renewable_Generation_Factor', label: 'Renew Gen Factor', slider: 'renfactor', min: 0.3, max: 1.5, step: 0.01, default: 1.0 },
+        { key: 'RPO_Target_pct', label: 'RPO Target %', slider: 'rpo', min: 10, max: 70, step: 1, default: 30 },
+        { key: 'Avg_Variable_Cost_per_MWh', label: 'Variable Cost/MWh', slider: 'varcost', min: 20, max: 350, step: 1, default: 80 },
+        { key: 'Merit_Order_Inversion_Rate', label: 'Inversion Rate', slider: 'inversion', min: 0, max: 1, step: 0.01, default: 0 }
+    ];
+
+    const PRESETS = {
+        baseline:  { fuel: 100, carbon: 50,   renfactor: 1.0,  rpo: 30, varcost: 80,  inversion: 0 },
+        moderate:  { fuel: 145, carbon: 800,  renfactor: 0.85, rpo: 40, varcost: 150, inversion: 0.35 },
+        severe:    { fuel: 200, carbon: 1500, renfactor: 0.65, rpo: 50, varcost: 250, inversion: 0.8 },
+        green:     { fuel: 90,  carbon: 200,  renfactor: 1.3,  rpo: 55, varcost: 60,  inversion: 0.1 }
+    };
+
+    const TARGET_LABELS = {
+        'Total_EBITDA': 'Total EBITDA',
+        'Average_DSCR': 'Average DSCR',
+        'System_Emission_Intensity': 'Emission Intensity',
+        'Merchant_Exposure_Rate': 'Merchant Exposure'
+    };
+
+    const TARGET_COLORS = {
+        'Total_EBITDA': '#00d4ff',
+        'Average_DSCR': '#4ecdc4',
+        'System_Emission_Intensity': '#ff6b6b',
+        'Merchant_Exposure_Rate': '#ffd93d'
+    };
+
+    let radarChart = null;
+    let stressChart = null;
+    let importanceChart = null;
+    let lastPrediction = null;
+
+    // ── Tab Switching ───────────────────────────────────────────────────
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+
+        if (tabId === 'importance') loadImportance();
+    }
+
+    // ── Slider Updates ──────────────────────────────────────────────────
+    function updateSlider() {
+        FEATURES.forEach(f => {
+            const el = document.getElementById(`slider-${f.slider}`);
+            const valEl = document.getElementById(`val-${f.slider}`);
+            if (el && valEl) {
+                const v = parseFloat(el.value);
+                valEl.textContent = f.step < 1 ? v.toFixed(2) : Math.round(v);
+            }
+        });
+    }
+
+    function getSliderValues() {
+        const vals = {};
+        FEATURES.forEach(f => {
+            vals[f.key] = parseFloat(document.getElementById(`slider-${f.slider}`).value);
+        });
+        return vals;
+    }
+
+    function applyPreset(name) {
+        const p = PRESETS[name];
+        if (!p) return;
+        FEATURES.forEach(f => {
+            const el = document.getElementById(`slider-${f.slider}`);
+            if (el && p[f.slider] !== undefined) el.value = p[f.slider];
+        });
+        updateSlider();
+    }
+
+    // ── Prediction ──────────────────────────────────────────────────────
+    async function runPrediction() {
+        const input = getSliderValues();
+        try {
+            const resp = await fetch(`${API_BASE}/api/predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(input)
+            });
+            const data = await resp.json();
+            if (data.error) { alert(data.error); return; }
+
+            lastPrediction = data.predictions;
+            displayPredictions(data.predictions);
+            updateRadarChart(data.predictions);
+            document.getElementById('last-prediction').textContent =
+                `Last prediction: ${new Date().toLocaleTimeString()}`;
+        } catch (e) {
+            alert('Error connecting to API. Make sure api_server.py is running.\n\n' + e.message);
+        }
+    }
+
+    function displayPredictions(preds) {
+        const fmt = (key, val) => {
+            if (key === 'Total_EBITDA') return val >= 1e6 ? (val / 1e6).toFixed(2) + 'M' : val >= 1e3 ? (val / 1e3).toFixed(1) + 'K' : val.toFixed(0);
+            if (key === 'Average_DSCR') return val.toFixed(3);
+            if (key === 'System_Emission_Intensity') return val.toFixed(4);
+            if (key === 'Merchant_Exposure_Rate') return val.toFixed(3);
+            return val.toFixed(2);
+        };
+        document.getElementById('res-ebitda').textContent = fmt('Total_EBITDA', preds.Total_EBITDA);
+        document.getElementById('res-dscr').textContent = fmt('Average_DSCR', preds.Average_DSCR);
+        document.getElementById('res-emission').textContent = fmt('System_Emission_Intensity', preds.System_Emission_Intensity);
+        document.getElementById('res-merchant').textContent = fmt('Merchant_Exposure_Rate', preds.Merchant_Exposure_Rate);
+
+        // Color code DSCR
+        const dscrEl = document.getElementById('res-dscr');
+        dscrEl.style.color = preds.Average_DSCR >= 1.3 ? 'var(--positive)' :
+                             preds.Average_DSCR >= 1.0 ? 'var(--accent4)' : 'var(--negative)';
+    }
+
+    // ── Radar Chart ─────────────────────────────────────────────────────
+    function updateRadarChart(preds) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        // Normalize to 0-100 scale for radar
+        const maxVals = { Total_EBITDA: 5e7, Average_DSCR: 3, System_Emission_Intensity: 1, Merchant_Exposure_Rate: 1 };
+        const labels = Object.keys(TARGET_LABELS).map(k => TARGET_LABELS[k]);
+        const values = Object.keys(TARGET_LABELS).map(k => Math.min(100, (preds[k] / maxVals[k]) * 100));
+
+        if (radarChart) radarChart.destroy();
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Current Scenario',
+                    data: values,
+                    backgroundColor: 'rgba(0, 212, 255, 0.15)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#00d4ff',
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        angleLines: { color: 'rgba(255,255,255,0.05)' },
+                        pointLabels: { color: '#8ba3bc', font: { size: 11 } },
+                        ticks: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Stress Test ─────────────────────────────────────────────────────
+    async function runStressTest() {
+        const base = getSliderValues();
+        const input = {
+            base_scenario: base,
+            sweep_feature: document.getElementById('sweep-feature').value,
+            sweep_min: parseFloat(document.getElementById('sweep-min').value),
+            sweep_max: parseFloat(document.getElementById('sweep-max').value),
+            sweep_steps: parseInt(document.getElementById('sweep-steps').value)
+        };
+
+        try {
+            const resp = await fetch(`${API_BASE}/api/stress_test`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(input)
+            });
+            const data = await resp.json();
+            if (data.error) { alert(data.error); return; }
+            drawStressChart(data);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    function drawStressChart(data) {
+        const ctx = document.getElementById('stressChart').getContext('2d');
+        const labels = data.results.map(r => r.sweep_value);
+        const datasets = Object.keys(TARGET_LABELS).map(target => ({
+            label: TARGET_LABELS[target],
+            data: data.results.map(r => r.predictions[target]),
+            borderColor: TARGET_COLORS[target],
+            backgroundColor: TARGET_COLORS[target] + '20',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 3,
+            yAxisID: target === 'Total_EBITDA' ? 'y' : 'y1'
+        }));
+
+        if (stressChart) stressChart.destroy();
+        stressChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        labels: { color: '#8ba3bc', font: { size: 11 } }
+                    },
+                    title: {
+                        display: true,
+                        text: `Sensitivity: ${data.sweep_feature.replace(/_/g, ' ')}`,
+                        color: '#e8edf2',
+                        font: { size: 14 }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: data.sweep_feature.replace(/_/g, ' '), color: '#8ba3bc' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8ba3bc' }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'EBITDA', color: '#00d4ff' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#00d4ff' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Other Targets', color: '#8ba3bc' },
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#8ba3bc' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Sweep feature range auto-fill ───────────────────────────────────
+    document.getElementById('sweep-feature').addEventListener('change', function() {
+        const feat = FEATURES.find(f => f.key === this.value);
+        if (feat) {
+            document.getElementById('sweep-min').value = feat.min;
+            document.getElementById('sweep-max').value = feat.max;
+        }
+    });
+
+    // ── Compare Tab ─────────────────────────────────────────────────────
+    function buildCompareSliders() {
+        ['a', 'b'].forEach(side => {
+            const container = document.getElementById(`compare-sliders-${side}`);
+            container.innerHTML = '';
+            FEATURES.forEach(f => {
+                const html = `
+                    <div class="slider-group" style="margin-bottom: 12px;">
+                        <div class="slider-label">
+                            <span style="font-size: 12px;">${f.label}</span>
+                            <span class="slider-value" id="cval-${side}-${f.slider}">${f.step < 1 ? f.default.toFixed(2) : f.default}</span>
+                        </div>
+                        <input type="range" id="cslider-${side}-${f.slider}"
+                               min="${f.min}" max="${f.max}" step="${f.step}" value="${f.default}"
+                               oninput="updateCompareSlider('${side}', '${f.slider}', ${f.step})">
+                    </div>`;
+                container.innerHTML += html;
+            });
+        });
+    }
+
+    function updateCompareSlider(side, slider, step) {
+        const el = document.getElementById(`cslider-${side}-${slider}`);
+        const valEl = document.getElementById(`cval-${side}-${slider}`);
+        valEl.textContent = step < 1 ? parseFloat(el.value).toFixed(2) : Math.round(parseFloat(el.value));
+    }
+
+    function getCompareValues(side) {
+        const vals = {};
+        FEATURES.forEach(f => {
+            vals[f.key] = parseFloat(document.getElementById(`cslider-${side}-${f.slider}`).value);
+        });
+        return vals;
+    }
+
+    function applyComparePreset(name) {
+        const presets = {
+            'baseline-vs-shock': [PRESETS.baseline, PRESETS.severe],
+            'low-vs-high-carbon': [
+                { fuel: 100, carbon: 50, renfactor: 1.0, rpo: 30, varcost: 80, inversion: 0 },
+                { fuel: 100, carbon: 2000, renfactor: 1.0, rpo: 30, varcost: 80, inversion: 0 }
+            ],
+            'fossil-vs-green': [
+                { fuel: 140, carbon: 0, renfactor: 0.7, rpo: 20, varcost: 120, inversion: 0.5 },
+                { fuel: 80, carbon: 300, renfactor: 1.3, rpo: 55, varcost: 50, inversion: 0.05 }
+            ]
+        };
+        const [a, b] = presets[name] || [PRESETS.baseline, PRESETS.moderate];
+        ['a', 'b'].forEach((side, i) => {
+            const p = i === 0 ? a : b;
+            FEATURES.forEach(f => {
+                const el = document.getElementById(`cslider-${side}-${f.slider}`);
+                if (el && p[f.slider] !== undefined) el.value = p[f.slider];
+                updateCompareSlider(side, f.slider, f.step);
+            });
+        });
+    }
+
+    async function runCompare() {
+        const input = {
+            scenario_a: getCompareValues('a'),
+            scenario_b: getCompareValues('b')
+        };
+        try {
+            const resp = await fetch(`${API_BASE}/api/compare`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(input)
+            });
+            const data = await resp.json();
+            if (data.error) { alert(data.error); return; }
+            displayCompareResults(data);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    function displayCompareResults(data) {
+        const container = document.getElementById('compare-cards');
+        container.innerHTML = '';
+        document.getElementById('compare-results').style.display = 'block';
+
+        Object.keys(TARGET_LABELS).forEach(target => {
+            const valA = data.scenario_a[target];
+            const valB = data.scenario_b[target];
+            const delta = data.deltas[target];
+            const isPositive = delta.absolute >= 0;
+            // For emission & merchant exposure, increase is bad
+            const isBadTarget = target.includes('Emission') || target.includes('Merchant');
+            const colorClass = (isBadTarget ? !isPositive : isPositive) ? 'positive' : 'negative';
+
+            const fmt = (v) => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : Math.abs(v) >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(3);
+
+            container.innerHTML += `
+                <div class="result-card">
+                    <div class="label">${TARGET_LABELS[target]}</div>
+                    <div style="display: flex; justify-content: space-around; margin: 8px 0;">
+                        <div>
+                            <div style="font-size: 11px; color: var(--accent);">A</div>
+                            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">${fmt(valA)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--accent2);">B</div>
+                            <div style="font-size: 18px; font-weight: 700; color: var(--accent2);">${fmt(valB)}</div>
+                        </div>
+                    </div>
+                    <div class="delta ${colorClass}">
+                        ${isPositive ? '▲' : '▼'} ${delta.pct_change !== null ? delta.pct_change + '%' : 'N/A'}
+                    </div>
+                </div>`;
+        });
+    }
+
+    // ── Feature Importance ──────────────────────────────────────────────
+    async function loadImportance() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/importance`);
+            const data = await resp.json();
+            displayImportanceTables(data);
+            drawImportanceChart(data);
+        } catch (e) {
+            document.getElementById('importance-tables').innerHTML =
+                '<p style="color: var(--text2);">Could not load importance data. Run the notebook first.</p>';
+        }
+    }
+
+    function displayImportanceTables(data) {
+        const container = document.getElementById('importance-tables');
+        container.innerHTML = '';
+        Object.keys(data).forEach(target => {
+            const entries = Object.entries(data[target]).sort((a, b) => b[1] - a[1]);
+            const maxImp = Math.max(...entries.map(e => e[1]));
+            let tableHtml = `
+                <h4 style="color: ${TARGET_COLORS[target]}; margin: 16px 0 8px;">${TARGET_LABELS[target]}</h4>
+                <table><tr><th>Feature</th><th>Importance</th><th style="width: 40%;">Bar</th></tr>`;
+            entries.forEach(([feat, imp]) => {
+                const pct = (imp / maxImp) * 100;
+                tableHtml += `
+                    <tr>
+                        <td>${feat.replace(/_/g, ' ')}</td>
+                        <td style="font-weight: 600;">${imp.toFixed(4)}</td>
+                        <td><div class="importance-bar" style="width: ${pct}%; background: ${TARGET_COLORS[target]};"></div></td>
+                    </tr>`;
+            });
+            tableHtml += '</table>';
+            container.innerHTML += tableHtml;
+        });
+    }
+
+    function drawImportanceChart(data) {
+        const ctx = document.getElementById('importanceChart').getContext('2d');
+        const features = FEATURES.map(f => f.key);
+        const datasets = Object.keys(data).map(target => ({
+            label: TARGET_LABELS[target],
+            data: features.map(f => data[target]?.[f] || 0),
+            backgroundColor: TARGET_COLORS[target] + '90',
+            borderColor: TARGET_COLORS[target],
+            borderWidth: 1
+        }));
+
+        if (importanceChart) importanceChart.destroy();
+        importanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: features.map(f => f.replace(/_/g, ' ').replace('pct', '%')),
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#8ba3bc', font: { size: 11 } } }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#8ba3bc', font: { size: 10 }, maxRotation: 45 },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Importance', color: '#8ba3bc' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8ba3bc' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────
+    buildCompareSliders();
+    updateSlider();
+</script>
+</body>
+</html>

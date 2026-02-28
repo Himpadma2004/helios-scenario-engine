@@ -1,0 +1,199 @@
+{
+  "feature_columns": [
+    "Avg_Fuel_Price_Index",
+    "Carbon_Tax_per_Ton",
+    "Avg_Renewable_Generation_Factor",
+    "RPO_Target_pct",
+    "Avg_Variable_Cost_per_MWh",
+    "Merit_Order_Inversion_Rate",
+    "Fuel_x_Carbon",
+    "Renewable_Shortfall",
+    "Shortfall_x_RPO",
+    "VarCost_x_Inversion"
+  ],
+  "target_columns": [
+    "Total_EBITDA",
+    "Average_DSCR",
+    "System_Emission_Intensity",
+    "Merchant_Exposure_Rate"
+  ],
+  "base_features": [
+    "Avg_Fuel_Price_Index",
+    "Carbon_Tax_per_Ton",
+    "Avg_Renewable_Generation_Factor",
+    "RPO_Target_pct",
+    "Avg_Variable_Cost_per_MWh",
+    "Merit_Order_Inversion_Rate"
+  ],
+  "interaction_features": [
+    "Fuel_x_Carbon",
+    "Renewable_Shortfall",
+    "Shortfall_x_RPO",
+    "VarCost_x_Inversion"
+  ],
+  "feature_ranges": {
+    "Avg_Fuel_Price_Index": {
+      "min": 74.30763505512203,
+      "max": 201.97400277735684,
+      "mean": 127.05597381181273,
+      "std": 21.120138589315598
+    },
+    "Carbon_Tax_per_Ton": {
+      "min": -761.3057536660625,
+      "max": 2430.1259377899905,
+      "mean": 701.7729381781782,
+      "std": 526.1273825082085
+    },
+    "Avg_Renewable_Generation_Factor": {
+      "min": 0.47099824858787587,
+      "max": 1.169441651253763,
+      "mean": 0.8390901236550337,
+      "std": 0.16588515099578563
+    },
+    "RPO_Target_pct": {
+      "min": 22.53070609150116,
+      "max": 53.33829351672891,
+      "mean": 37.31259487860365,
+      "std": 7.53762515905167
+    },
+    "Avg_Variable_Cost_per_MWh": {
+      "min": 1673.7790991621,
+      "max": 3703.7365070053174,
+      "mean": 2588.086721209647,
+      "std": 370.75271000005495
+    },
+    "Merit_Order_Inversion_Rate": {
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.3485285721245,
+      "std": 0.45003753136885916
+    },
+    "Fuel_x_Carbon": {
+      "min": -78395.0876532015,
+      "max": 449296.0076879922,
+      "mean": 93449.69151791609,
+      "std": 84357.29281591767
+    },
+    "Renewable_Shortfall": {
+      "min": 0.0,
+      "max": 0.5290017514121241,
+      "mean": 0.1643514565603446,
+      "std": 0.16132623625570344
+    },
+    "Shortfall_x_RPO": {
+      "min": 0.0,
+      "max": 27.503933193288322,
+      "mean": 7.328403509345854,
+      "std": 7.373957339176032
+    },
+    "VarCost_x_Inversion": {
+      "min": 0.0,
+      "max": 3703.7365070053174,
+      "mean": 1026.062207770248,
+      "std": 1346.727674480957
+    }
+  },
+  "model_type": "XGBRegressor",
+  "monotonic_constraints": {
+    "Total_EBITDA": [
+      -1,
+      -1,
+      0,
+      0,
+      -1,
+      0,
+      -1,
+      0,
+      0,
+      -1
+    ],
+    "Average_DSCR": [
+      -1,
+      -1,
+      0,
+      0,
+      -1,
+      0,
+      -1,
+      0,
+      0,
+      -1
+    ],
+    "System_Emission_Intensity": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "Merchant_Exposure_Rate": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1
+    ]
+  },
+  "n_training_samples": 1100,
+  "cross_validation_folds": 5,
+  "performance": [
+    {
+      "Target": "Total_EBITDA",
+      "CV_R2_Mean": 0.9482,
+      "CV_R2_Std": 0.0071,
+      "CV_MAE_Mean": 163339989.8,
+      "CV_MAE_Std": 8630543.61,
+      "Train_R2": 0.985,
+      "Train_MAE": 91151523.05,
+      "Train_CV_Gap": 0.0368
+    },
+    {
+      "Target": "Average_DSCR",
+      "CV_R2_Mean": 0.6948,
+      "CV_R2_Std": 0.0876,
+      "CV_MAE_Mean": 0.71,
+      "CV_MAE_Std": 0.12,
+      "Train_R2": 0.9514,
+      "Train_MAE": 0.29,
+      "Train_CV_Gap": 0.2566
+    },
+    {
+      "Target": "System_Emission_Intensity",
+      "CV_R2_Mean": 0.9269,
+      "CV_R2_Std": 0.0241,
+      "CV_MAE_Mean": 0.0,
+      "CV_MAE_Std": 0.0,
+      "Train_R2": 0.9412,
+      "Train_MAE": 0.0,
+      "Train_CV_Gap": 0.0144
+    },
+    {
+      "Target": "Merchant_Exposure_Rate",
+      "CV_R2_Mean": 0.9967,
+      "CV_R2_Std": 0.0011,
+      "CV_MAE_Mean": 0.01,
+      "CV_MAE_Std": 0.0,
+      "Train_R2": 0.9988,
+      "Train_MAE": 0.01,
+      "Train_CV_Gap": 0.0021
+    }
+  ],
+  "version": "v2_fixed",
+  "fixes": [
+    "DSCR clipped [-2,4] consistent monthly",
+    "Removed Renewable_Mix_pct (leakage)",
+    "Added 4 interaction features",
+    "Monotonic constraints EBITDA/DSCR",
+    "Merchant Exposure [0,1]"
+  ]
+}
