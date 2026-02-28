@@ -69,8 +69,16 @@ def load_artifacts():
 
 
 print("Loading model artifacts...")
-metadata, scaler, models, importance_data = load_artifacts()
-print(f"✅ Loaded {len(models)} models: {list(models.keys())}")
+STARTUP_ERROR = None
+try:
+    metadata, scaler, models, importance_data = load_artifacts()
+    print(f"✅ Loaded {len(models)} models: {list(models.keys())}")
+except Exception as e:
+    import traceback
+    STARTUP_ERROR = traceback.format_exc()
+    print(f"❌ STARTUP ERROR: {e}")
+    print(STARTUP_ERROR)
+    metadata, scaler, models, importance_data = {}, None, {}, {}
 
 
 def compute_interaction_features(base_input):
@@ -265,6 +273,24 @@ def compare_scenarios():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'models': len(models), 'version': metadata.get('version', 'unknown')})
+
+
+@app.route('/api/debug', methods=['GET'])
+def debug_info():
+    """Diagnostic endpoint — shows startup status and environment."""
+    import sys
+    output_files = os.listdir(OUTPUT_DIR) if os.path.isdir(OUTPUT_DIR) else 'DIR NOT FOUND'
+    return jsonify({
+        'startup_error': STARTUP_ERROR,
+        'python_version': sys.version,
+        'cwd': os.getcwd(),
+        'base_dir': BASE_DIR,
+        'output_dir': OUTPUT_DIR,
+        'output_files': output_files,
+        'models_loaded': list(models.keys()),
+        'xgboost_version': xgb.__version__,
+        'numpy_version': np.__version__,
+    })
 
 
 # ── Run ──────────────────────────────────────────────────────────────────
